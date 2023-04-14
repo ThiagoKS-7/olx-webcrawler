@@ -1,0 +1,10 @@
+pandas
+requests
+bs4
+retry
+contexttimer
+openpyxl
+lxml
+google-api-python-client
+google-auth-httplib2 
+google-auth-oauthlib
