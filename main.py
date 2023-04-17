@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from contexttimer import Timer  
 from datetime import datetime, timedelta
 
-MAX_PAGES = 10
+MAX_PAGES = 1
 
 
 def configure_defaults() -> None:
@@ -69,6 +69,7 @@ class OlxScrapper():
                 produto:BeautifulSoup
 
                 try:
+                    detalhes = [i.find("span")["aria-label"] or '-' for i in produto.find("ul", {"aria-label": "detalhes do anúncio"})]                    
                     url_produto = produto.find("a")["href"]
                 except TypeError:
                     logging.debug(f"URL nao encontrada em: \n{produto}\n\n")
@@ -81,13 +82,16 @@ class OlxScrapper():
                 except TypeError:
                     logging.info(f"Título não encontrado na página")
 
-                executor.submit(self._append_prod_list, url_produto,page) # Executa paralelizado
+                executor.submit(self._append_prod_list, detalhes,url_produto,page) # Executa paralelizado
         return True
     
-    def _append_prod_list(self, url_produto:str, page:str|int):
-        self.lista_produtos.append(self._build_dict(url_produto,page))
+    def _append_prod_list(self,  detalhes, url_produto:str, page:str|int):
+        '''
+            Salva resultado da request  lista
+        '''
+        self.lista_produtos.append(self._build_dict(detalhes, url_produto, page))
 
-    def _build_dict(self, url_produto:str, page:str|int):
+    def _build_dict(self,  detalhes, url_produto:str, page:str|int):
         '''
             Monta dicionario de cada item scrappado
         '''
@@ -110,7 +114,8 @@ class OlxScrapper():
                     logging.error(f"Não encontrou a data de publicação do produto: {url_produto}/n{dados_str}/n/n")
                     return
             logging.debug(f'Data/hora de publicação: {data_hora_post}')
-
+            
+            
             regex_list = [
                 r'(?<=\"subject\":\").*?(?=\")',
                 r'(?<=\"price\":\"R\$ ).*?(?=\")',
@@ -128,14 +133,18 @@ class OlxScrapper():
             preco_post = float(preco_post.replace('.','')) if preco_post else 0.0
             estado_post = url_produto[8:10].upper()
 
-            dic_produtos = {'pagina': str(page),
-                            'titulo': titulo_anuncio,
-                            'preco': preco_post,
-                            'estado': estado_post,
-                            'cidade': cidade_post,
-                            'bairro': bairro_post,
-                            'url': url_produto,
-                            'data_publicacao': data_hora_post,
+            dic_produtos = {'pagina': str(page) or '-',
+                            'titulo': titulo_anuncio or '-',
+                            'preco': preco_post or '-',
+                            'estado': estado_post or '-',
+                            'cidade': cidade_post or '-',
+                            'bairro': bairro_post or '-',
+                            'quilometragem (km)': detalhes[0].split(" ")[0] if detalhes != None else '-',
+                            'ano':detalhes[1].split(" ")[1] if (detalhes != None and len(detalhes) > 1)  else '-',
+                            'combustivel':detalhes[2].split(" ")[1]   if (detalhes != None and len(detalhes) > 2) else '-',
+                            'cambio':detalhes[3].split(" ")[1] if (detalhes != None and len(detalhes) > 3) else '-',
+                            'url': url_produto if len(url_produto) > 5 else '-',
+                            'data_publicacao': data_hora_post if data_hora_post != None else '-',
                             'data_pesquisa': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             return dic_produtos
 
