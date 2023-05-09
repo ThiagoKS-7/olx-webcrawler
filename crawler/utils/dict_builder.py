@@ -62,7 +62,6 @@ def build_dict(detalhes, url_produto:str, page:str|int):
                 'url': url_produto if len(url_produto) > 5 else '-',
                 'data_publicacao': data_hora_post if data_hora_post != None else '-',
                 'data_pesquisa': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        print(f"DICT PRODUTO {dict_produto}")
         return dict_produto
     
     except Exception:
